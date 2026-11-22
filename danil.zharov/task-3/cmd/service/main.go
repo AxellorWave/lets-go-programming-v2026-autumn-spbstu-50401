@@ -32,10 +32,10 @@ type CommaFloat float64
 func (f *CommaFloat) UnmarshalText(text []byte) error {
 	normalized := strings.Replace(string(text), ",", ".", 1)
 	value, err := strconv.ParseFloat(normalized, 64)
-
 	if err != nil {
 		return fmt.Errorf("failed to parse number %q: %w", text, err)
 	}
+
 	*f = CommaFloat(value)
 
 	return nil
