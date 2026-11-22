@@ -3,16 +3,23 @@ package main
 import (
 	"bytes"
 	"cmp"
+	"encoding/json"
 	"encoding/xml"
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
 	"go.yaml.in/yaml/v4"
 	"golang.org/x/net/html/charset"
+)
+
+const (
+	dirPermissions  = 0o755
+	filePermissions = 0o644
 )
 
 type Config struct {
@@ -35,9 +42,9 @@ func (f *CommaFloat) UnmarshalText(text []byte) error {
 }
 
 type Currency struct {
-	NumCode  int        `xml:"NumCode"`
-	CharCode string     `xml:"CharCode"`
-	Value    CommaFloat `xml:"Value"`
+	NumCode  int        `json:"num_code"  xml:"NumCode"`
+	CharCode string     `json:"char_code" xml:"CharCode"`
+	Value    CommaFloat `json:"value"     xml:"Value"`
 }
 
 type ExchangeRates struct {
@@ -81,6 +88,23 @@ func sortByValue(currencies []Currency) {
 	})
 }
 
+func saveCurrencies(path string, currencies []Currency) error {
+	data, err := json.MarshalIndent(currencies, "", "    ")
+	if err != nil {
+		return fmt.Errorf("failed to encode currencies: %w", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), dirPermissions); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, filePermissions); err != nil {
+		return fmt.Errorf("failed to write output file: %w", err)
+	}
+
+	return nil
+}
+
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
@@ -97,7 +121,7 @@ func main() {
 
 	sortByValue(currencies)
 
-	for _, currency := range currencies {
-		fmt.Printf("%03d %-3s %10.4f\n", currency.NumCode, currency.CharCode, currency.Value)
+	if err := saveCurrencies(cfg.OutputFile, currencies); err != nil {
+		panic(err)
 	}
 }
