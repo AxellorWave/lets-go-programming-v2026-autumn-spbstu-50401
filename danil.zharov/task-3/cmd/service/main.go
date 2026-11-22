@@ -2,10 +2,12 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/xml"
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -73,6 +75,12 @@ func loadCurrencies(path string) ([]Currency, error) {
 	return rates.Currencies, nil
 }
 
+func sortByValue(currencies []Currency) {
+	slices.SortFunc(currencies, func(a, b Currency) int {
+		return cmp.Compare(b.Value, a.Value)
+	})
+}
+
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
@@ -87,5 +95,9 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("%+v\n", currencies)
+	sortByValue(currencies)
+
+	for _, currency := range currencies {
+		fmt.Printf("%03d %-3s %10.4f\n", currency.NumCode, currency.CharCode, currency.Value)
+	}
 }
